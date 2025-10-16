@@ -15,15 +15,32 @@ def build_rcpsp_figure(
     durations = np.asarray(getattr(data, "durations"))
     starts = np.asarray(starts)
     ends = starts + durations
+    makespan = int(ends.max()) if len(ends) else 0
     n_tasks = len(durations)
     task_labels = task_labels or [f"T{i}" for i in range(n_tasks)]
 
     U = np.asarray(usage) if usage is not None else None
     C = np.asarray(capacities) if capacities is not None else None
-    R = U.shape[1] if (U is not None and U.ndim == 2) else 0
-    T = U.shape[0] if U is not None else 0
+    Tu = U.shape[0] if (U is not None and U.ndim == 2) else 0
+    Tc = C.shape[0] if (C is not None and C.ndim == 2) else 0
+    R  = (U.shape[1] if (U is not None and U.ndim == 2) else
+          C.shape[1] if (C is not None and C.ndim == 2) else 0)
+    T = max(Tu, Tc, makespan + 1)
     res_names = getattr(data, "resource_names", [f"R{j}" for j in range(R)])
-    t_axis = np.arange(T) if T else np.array([])
+    t_axis = np.arange(T)
+    # pad arrays to (T, R)
+    def pad2(arr, pad_mode="constant"):
+        if arr is None:
+            return np.zeros((T, R), dtype=float)
+        a = arr
+        if a.shape[0] < T:
+            a = np.pad(a, ((0, T - a.shape[0]), (0, 0)), mode=("edge" if pad_mode == "edge" else "constant"))
+        if a.shape[1] < R:
+            a = np.pad(a, ((0, 0), (0, R - a.shape[1])), mode=("edge" if pad_mode == "edge" else "constant"))
+        return a
+
+    U = pad2(U, pad_mode="constant")   # usage: zeros beyond data
+    C = pad2(C, pad_mode="edge")       # capacity: hold last value beyond data
 
     rows_total = 1 + max(R, 1)
     row_heights = [0.55] + [0.45 / max(R, 1)] * max(R, 1)
@@ -112,7 +129,7 @@ def build_rcpsp_figure(
             showticklabels=True,   # <- force labels on every row
             showline=True,
             mirror=True,           # draw axis line on both sides; makes ticks clear
-            row=r, col=1
+            range=[0, makespan], row=r, col=1
         )
     fig.update_xaxes(title_text=f"Time [{time_unit}]", row=rows_total, col=1)
 

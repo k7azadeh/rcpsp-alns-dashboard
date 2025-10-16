@@ -138,9 +138,25 @@ def load_from_csv(tasks_csv: str, caps_csv: str, add_dummies: bool = True) -> Pr
         raise ValueError(f"Mismatch between task and capacity resources: {cap_res} vs {resource_names}")
 
 
-    # Sort by time and create the capacity matrix
-    caps_df = caps_df.sort_values("Time").reset_index(drop=True)
-    cap_tm = caps_df[cap_cols].to_numpy(int)
+    # Sort by time and normalize the capacity horizon
+    caps_df = caps_df.sort_values("Time").drop_duplicates(subset=["Time"]).reset_index(drop=True)
+
+    # Compute a safe upper bound on makespan (sum of durations of real tasks)
+    safe_horizon = int(tasks_df["Duration"].sum())
+
+    # Ensure Time starts at 0 and has no gaps; extend to max(current_horizon, safe_horizon)
+    res_cols = [c for c in caps_df.columns if c.startswith("Cap_")]
+    max_needed_t = max(safe_horizon, int(caps_df["Time"].max()))
+    caps_df = (
+        caps_df.set_index("Time")
+            .reindex(range(0, max_needed_t + 1))    # fill missing rows
+            .ffill()                                 # forward-fill capacities
+            .reset_index()
+            .rename(columns={"index": "Time"})
+    )
+
+    # Now create the capacity matrix
+    cap_tm = caps_df[res_cols].to_numpy(int)
     if add_dummies:
         n_real = len(durations)
         R = needs.shape[1]
