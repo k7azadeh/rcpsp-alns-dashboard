@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 import streamlit as st
 
-st.set_page_config(page_title="RCPSP Scheduler Dashboard (ALNS)", layout="wide")
+st.set_page_config(page_title="🚀 Kaveh Scheduler", layout="wide")
 
 from src.data import load_from_csv, has_dummies
 from src.solver import solve_with_alns
