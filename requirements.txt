@@ -2,5 +2,6 @@ streamlit>=1.36
 plotly>=5.22
 numpy>=1.24
 pandas>=2.0
+alns>=7.0.0
 # Optional (for PNG export of Plotly figures):
 # kaleido>=0.2.1
